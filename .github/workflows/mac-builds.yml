@@ -1,0 +1,98 @@
+---
+name: Build and Submit iOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        type: choice
+        description: Build profile to use
+        options:
+          - testflight
+          - production
+
+jobs:
+  build:
+    name: Build and Submit iOS
+    runs-on: self-hosted
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: >
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+
+      - name: 🔧 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: 🪛 Setup jq
+        uses: dcarbone/install-jq-action@v2
+
+      - name: 🔨 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: ⛏️ Setup EAS local builds
+        run: pnpm add -g eas-cli-local-build-plugin
+
+      - name: ⚙️ Install dependencies
+        run: pnpm install
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.2"
+
+      - name: ☕️ Setup Cocoapods
+        uses: maxim-lobanov/setup-cocoapods@v1
+        with:
+          version: 1.16.2
+
+      - name: 💾 Cache Pods
+        uses: actions/cache@v3
+        id: pods-cache
+        with:
+          path: ./ios/Pods
+          # We'll use the pnpm-lock.yaml for our hash since we don't yet have a Podfile.lock. Pod versions will not
+          # change unless the package version changes as well.
+          key: ${{ runner.os }}-pods-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: ✏️ Write environment variables
+        run: |
+          echo "${{ secrets.ENV_TOKEN }}" > .env
+          echo "EXPO_PUBLIC_BUNDLE_IDENTIFIER=$(git rev-parse --short HEAD)" >> .env
+          echo "EXPO_PUBLIC_BUNDLE_DATE=$(date -u +"%y%m%d%H")" >> .env
+
+      - name: 🏗️ EAS Build
+        run: eas build -p ios --profile ${{ inputs.profile || 'testflight' }} --local --output build.ipa --non-interactive
+
+      - name: 🚀 Deploy
+        run: eas submit -p ios --non-interactive --path build.ipa
+
+      - name: ⬇️ Restore Cache
+        id: get-base-commit
+        uses: actions/cache@v4
+        if: ${{ inputs.profile == 'testflight' }}
+        with:
+          path: most-recent-testflight-commit.txt
+          key: most-recent-testflight-commit
+
+      - name: ✏️ Write commit hash to cache
+        if: ${{ inputs.profile == 'testflight' }}
+        run: echo ${{ github.sha }} > most-recent-testflight-commit.txt
