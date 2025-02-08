@@ -32,7 +32,6 @@ scripts/ad-hoc/upload
 brand-configs/*
 !brand-configs/moego
 app-configs*/
-app.json
 credentials.json
 *.code-workspace
 
