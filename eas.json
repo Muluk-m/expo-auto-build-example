@@ -1,6 +1,6 @@
 {
   "build": {
-    "development": {
+    "testflight": {
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
