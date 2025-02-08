@@ -28,14 +28,14 @@ jobs:
         with:
           fetch-depth: 5
 
-      - name: 🔧 Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
+      # - name: 🔧 Setup Node
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version-file: .nvmrc
+      #     cache: pnpm
 
-      - name: 🪛 Setup jq
-        uses: dcarbone/install-jq-action@v2
+      # - name: 🪛 Setup jq
+      #   uses: dcarbone/install-jq-action@v2
 
       - name: 🔨 Setup EAS
         uses: expo/expo-github-action@v8
@@ -44,31 +44,33 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
+      # - name: 📦 Setup pnpm
+      #   uses: pnpm/action-setup@v2
+      #   with:
+      #     version: latest
 
-      - name: ⛏️ Setup EAS local builds
-        run: pnpm add -g eas-cli-local-build-plugin
+      # - name: ⛏️ Setup EAS local builds
+      #   run: pnpm add -g eas-cli-local-build-plugin
 
       - name: ⚙️ Install dependencies
         run: pnpm install
 
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "16.2"
+      # - uses: maxim-lobanov/setup-xcode@v1
+      #   with:
+      #     xcode-version: "16.2"
 
-      - name: ☕️ Setup Cocoapods
-        uses: maxim-lobanov/setup-cocoapods@v1
-        with:
-          version: 1.16.2
+      # - name: ☕️ Setup Cocoapods
+      #   uses: maxim-lobanov/setup-cocoapods@v1
+      #   with:
+      #     version: 1.16.2
 
       - name: 💾 Cache Pods
         uses: actions/cache@v3
         id: pods-cache
         with:
-          path: ./ios/Pods
+          path: |
+            ./ios/Pods
+            ./node_modules
           # We'll use the pnpm-lock.yaml for our hash since we don't yet have a Podfile.lock. Pod versions will not
           # change unless the package version changes as well.
           key: ${{ runner.os }}-pods-${{ hashFiles('pnpm-lock.yaml') }}
@@ -82,8 +84,8 @@ jobs:
       - name: 🏗️ EAS Build
         run: eas build -p ios --profile ${{ inputs.profile || 'testflight' }} --local --output build.ipa --non-interactive
 
-      - name: 🚀 Deploy
-        run: eas submit -p ios --non-interactive --path build.ipa
+      # - name: 🚀 Deploy
+      #   run: eas submit -p ios --non-interactive --path build.ipa
 
       - name: ⬇️ Restore Cache
         id: get-base-commit
