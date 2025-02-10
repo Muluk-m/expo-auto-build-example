@@ -97,8 +97,10 @@ jobs:
           name: "${{ steps.git-commit-hash.outputs.GIT_COMMIT_HASH }}.ipa"
           path: build.ipa
 
-      - name: reset git
-        run: git reset --hard
+      - name: 🔄 Clean up
+        run: |
+          git reset --hard origin/${{ github.ref_name }}
+          git clean -fd
 
       - name: ⬇️ Restore Cache
         id: get-base-commit
