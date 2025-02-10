@@ -75,10 +75,14 @@ jobs:
           # change unless the package version changes as well.
           key: ${{ runner.os }}-pods-${{ hashFiles('pnpm-lock.yaml') }}
 
+      - name: 🔍 Get git commit hash
+        id: git-commit-hash
+        run: echo "GIT_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: ✏️ Write environment variables
         run: |
           echo "${{ secrets.ENV_TOKEN }}" > .env
-          echo "EXPO_PUBLIC_BUNDLE_IDENTIFIER=$(git rev-parse --short HEAD)" >> .env
+          echo "EXPO_PUBLIC_BUNDLE_IDENTIFIER=${{ steps.git-commit-hash.outputs.GIT_COMMIT_HASH }}" >> .env
           echo "EXPO_PUBLIC_BUNDLE_DATE=$(date -u +"%y%m%d%H")" >> .env
 
       - name: 🏗️ EAS Build
@@ -86,6 +90,15 @@ jobs:
 
       # - name: 🚀 Deploy
       #   run: eas submit -p ios --non-interactive --path build.ipa
+
+      - name: 📦 Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ steps.git-commit-hash.outputs.GIT_COMMIT_HASH }}.ipa"
+          path: build.ipa
+
+      - name: reset git
+        run: git reset --hard
 
       - name: ⬇️ Restore Cache
         id: get-base-commit
